@@ -87,15 +87,25 @@ public class PostCodeController : ControllerBase
         _logger.LogInformation($"FindAddresses/{text}");
 
         var searchResults = await GetSearchResults(text);
-        if (!searchResults.Any())
+        var addresses = new List<SearchResultItemDto>();
+
+        foreach(var searchResult in searchResults)
+        {
+            if (!searchResult.Description.EndsWith(" - More Addresses"))
+            {
+                addresses.Add(searchResult);
+                continue;
+            }
+
+            var moreAddresses = await GetFromIdResults(searchResult.Id);
+            addresses.AddRange(moreAddresses);
+        }
+
+        if (!addresses.Any())
         {
             return NotFound();
         }
 
-        var tasks = searchResults.Select(x => GetFromIdResults(x.Id));
-        var taskResults = await Task.WhenAll(tasks);
-        var addressResults = taskResults.SelectMany(x => x);
-
-        return Ok(addressResults);
+        return Ok(addresses);
     }
 }
