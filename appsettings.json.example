@@ -1,0 +1,14 @@
+{
+  "PostCodeAnywhere": {
+    "BaseUrl": "https://services.postcodeanywhere.co.uk/Capture/Interactive/Find/v1.00/json3ex.ws",
+    "Key": "XXXX-XXXX-XXXX-XXXX",
+    "Referer": "https://www.example.com/"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
