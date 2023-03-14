@@ -12,7 +12,11 @@ namespace PostCode.Controllers;
 [Route("[controller]")]
 public class PostCodeController : ControllerBase
 {
-    private static Regex _regex = new Regex(@"\s+|\-", RegexOptions.Compiled);
+    private static Regex _validatorRegex = new Regex(
+        @"([Gg][Ii][Rr] 0[Aa]{2})|((([A-Za-z][0-9]{1,2})" +
+        @"|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|" + 
+        @"([A-Za-z][A-Ha-hJ-Yj-y][0-9][A-Za-z]?))))\s?[0-9][A-Za-z]{2})",
+        RegexOptions.Compiled);
 
     private readonly ILogger<PostCodeController> _logger;
     private readonly PostCodeAnywhereConfig _config;
@@ -50,16 +54,17 @@ public class PostCodeController : ControllerBase
         return data.Items;
     }
 
+#if false
     [Route("/Search")]
     [HttpGet("Search/{text}")]
     public async Task<IActionResult> Search(string text)
     {
-        _logger.LogInformation($"Search/{text}");
+        _logger.LogInformation($"search/{text}");
 
         var results = await GetSearchResults(text);
         if (!results.Any())
         {
-            return NotFound();
+            return NotFound("No results");
         }
 
         return Ok(results);
@@ -69,29 +74,35 @@ public class PostCodeController : ControllerBase
     [HttpGet("FromId/{id}")]
     public async Task<IActionResult> FromId(string id)
     {
-        _logger.LogInformation($"FromId/{id}");
+        _logger.LogInformation($"fromid/{id}");
 
         var results = await GetFromIdResults(id);
         if (!results.Any())
         {
-            return NotFound();
+            return NotFound("No results");
         }
 
         return Ok(results);
     }
+#endif
 
-    [Route("/FindAddresses")]
-    [HttpGet("FindAddresses/{text}")]
-    public async Task<IActionResult> FinadAddress(string text)
+    [Route("/Addresses")]
+    [HttpGet("Addresses/{text}")]
+    public async Task<IActionResult> Addresses(string text)
     {
-        _logger.LogInformation($"FindAddresses/{text}");
+        _logger.LogInformation($"addresses/{text}");
+
+        if (_config.ZipCodesOnly && !_validatorRegex.IsMatch(text))
+        {
+            return BadRequest("Invalid format");
+        }
 
         var searchResults = await GetSearchResults(text);
         var addresses = new List<SearchResultItemDto>();
 
         foreach(var searchResult in searchResults)
         {
-            if (!searchResult.Description.EndsWith(" - More Addresses"))
+            if (searchResult.Type == "Address")
             {
                 addresses.Add(searchResult);
                 continue;
@@ -103,9 +114,10 @@ public class PostCodeController : ControllerBase
 
         if (!addresses.Any())
         {
-            return NotFound();
+            return NotFound("No results");
         }
 
-        return Ok(addresses);
+        var result = addresses.Select(x => new { Address = x.Text, Location = x.Description } );
+        return Ok(result);
     }
 }
